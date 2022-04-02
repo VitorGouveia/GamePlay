@@ -1,0 +1,6 @@
+{
+  "name": "pok-mon",
+  "private": true,
+  "author": "Vitor Gouveia <vitorneves.gouveia10@gmail.com>",
+  "packageManager": "yarn@3.2.0"
+}
