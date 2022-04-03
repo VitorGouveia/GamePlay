@@ -4,6 +4,7 @@
 
 import { collisions } from "./src/collisions.js";
 import { battleZones as battleZonesData } from "./src/battle-zones.js";
+import { attacks } from "./src/attacks.js";
 
 const sunIntensity = {
   0: 0.95,
@@ -181,6 +182,7 @@ const app = () => {
     sprites = {};
     opacity = 1;
     isEnemy = false;
+    rotation = 0;
 
     constructor({
       position: { y, x },
@@ -190,6 +192,7 @@ const app = () => {
       animate = false,
       opacity = 1,
       isEnemy = false,
+      rotation = 0,
     }) {
       this.position = {
         x,
@@ -206,6 +209,7 @@ const app = () => {
       this.sprites = sprites;
       this.opacity = opacity;
       this.isEnemy = isEnemy;
+      this.rotation = rotation;
     }
 
     setImage(url) {
@@ -217,79 +221,282 @@ const app = () => {
       };
     }
 
-    attack({ attack, recipient }) {
-      let movementDistance = 20;
-
-      if (this.isEnemy) movementDistance = -movementDistance;
-      const tl = gsap.timeline();
-
+    attack({ attack, recipient, rendredSprites }) {
       let healthBarSelector = "#enemy-health-bar";
       if (this.isEnemy) healthBarSelector = "#player-health-bar";
 
-      tl.to(this.position, {
-        x: this.position.x - movementDistance * 2,
-        y: this.position.y + movementDistance,
-        duration: 0.3,
-      })
-        .to(this.position, {
-          x: this.position.x + movementDistance * 2,
-          y: this.position.y - movementDistance,
-          duration: 0.2,
-          onComplete: () => {
-            recipient.health -= attack.damage;
+      recipient.health -= attack.damage;
 
-            gsap.to(healthBarSelector, {
-              width: `${recipient.health}%`,
+      let rotation = 1;
+      if (this.isEnemy) rotation = -2.2;
+
+      switch (attack.name) {
+        case "tackle": {
+          let movementDistance = 20;
+
+          if (this.isEnemy) movementDistance = -movementDistance;
+          const tl = gsap.timeline();
+
+          tl.to(this.position, {
+            x: this.position.x - movementDistance * 2,
+            y: this.position.y + movementDistance,
+            duration: 0.3,
+          })
+            .to(this.position, {
+              x: this.position.x + movementDistance * 2,
+              y: this.position.y - movementDistance,
+              duration: 0.2,
+              onComplete: () => {
+                gsap.to(healthBarSelector, {
+                  width: `${recipient.health < 0 ? 0 : recipient.health}%`,
+                });
+
+                if (recipient.health <= 0) {
+                  gsap.to(recipient, {
+                    opacity: 0,
+                    repeat: 5,
+                    yoyo: true,
+                    duration: 0.08,
+                    onComplete() {
+                      gsap.to(recipient, {
+                        opacity: 0,
+                      });
+                    },
+                  });
+
+                  // cancel the battle move to the normal map
+
+                  return;
+                }
+
+                if (recipient.health > 70) {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(98, 187, 38)";
+                } else if (recipient.health > 30) {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(406, 187, 38)";
+                } else {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(187, 38, 38)";
+                }
+
+                gsap.to(recipient.position, {
+                  x: recipient.position.x + 35,
+                  y: recipient.position.y - 25,
+                  duration: 0.1,
+                });
+              },
+            })
+            .to(this.position, {
+              x: this.position.x,
+              y: this.position.y,
+            })
+            .to(recipient.position, {
+              x: recipient.position.x,
+              y: recipient.position.y,
             });
+          break;
+        }
+        case "firebolt": {
+          const fireball = new Sprite({
+            position: {
+              x: this.position.x,
+              y: this.position.y,
+            },
+            image: "./src/assets/images/fireball.png",
+            frames: {
+              max: 4,
+            },
+            animate: true,
+            rotation,
+          });
 
-            if (recipient.health <= 0) {
+          fireball.frames.rate = 10;
+
+          rendredSprites.push(fireball);
+
+          gsap.to(fireball.position, {
+            x: recipient.position.x,
+            y: recipient.position.y,
+            onComplete: () => {
+              rendredSprites.pop();
+
+              gsap.to(healthBarSelector, {
+                width: `${recipient.health < 0 ? 0 : recipient.health}%`,
+              });
+
               gsap.to(recipient, {
                 opacity: 0,
                 repeat: 5,
                 yoyo: true,
                 duration: 0.08,
-                onComplete() {
+              });
+              if (recipient.health <= 0) {
+                gsap.to(recipient, {
+                  opacity: 0,
+                  repeat: 5,
+                  yoyo: true,
+                  duration: 0.08,
+                  onComplete() {
+                    gsap.to(recipient, {
+                      opacity: 0,
+                    });
+                  },
+                });
+
+                // cancel the battle move to the normal map
+
+                return;
+              }
+
+              if (recipient.health > 70) {
+                document.querySelector(healthBarSelector).style.background =
+                  "rgb(98, 187, 38)";
+              } else if (recipient.health > 30) {
+                document.querySelector(healthBarSelector).style.background =
+                  "rgb(406, 187, 38)";
+              } else {
+                document.querySelector(healthBarSelector).style.background =
+                  "rgb(187, 38, 38)";
+              }
+            },
+          });
+
+          break;
+        }
+        case "eruption": {
+          let fireballMap = [
+            {
+              y: 100,
+              x: -25,
+            },
+            {
+              y: 80,
+              x: 5,
+            },
+            {
+              y: 60,
+              x: 25,
+            },
+            {
+              y: 20,
+              x: 5,
+            },
+            {
+              y: 20,
+              x: -15,
+            },
+            {
+              y: 55,
+              x: -35,
+            },
+            {
+              y: 65,
+              x: 65,
+            },
+            {
+              y: 45,
+              x: 35,
+            },
+            {
+              y: 25,
+              x: 35,
+            },
+            {
+              y: 55,
+              x: -35,
+            },
+          ];
+
+          // - 20 -5
+          // - 15 +5
+          // -10 +10
+          // -5 +5
+          // 0 -5
+          Array.from({ length: 10 }).forEach((_, index) => {
+            const fireball = new Sprite({
+              position: {
+                x: this.position.x + fireballMap[index].x,
+                y: this.position.y - fireballMap[index].y,
+              },
+              image: "./src/assets/images/fireball.png",
+              frames: {
+                max: 4,
+              },
+              animate: true,
+            });
+
+            fireball.frames.rate = 10;
+
+            rendredSprites.push(fireball);
+
+            gsap.to(fireball.position, {
+              x: fireball.position.x + 600 * 2,
+              y: fireball.position.y - 220 * 2,
+              duration: 1,
+              onComplete: () => {
+                rendredSprites.pop();
+
+                gsap.to(healthBarSelector, {
+                  width: `${recipient.health < 0 ? 0 : recipient.health}%`,
+                });
+
+                gsap.to(recipient, {
+                  opacity: 0,
+                  repeat: 5,
+                  yoyo: true,
+                  duration: 0.08,
+                });
+                if (recipient.health <= 0) {
                   gsap.to(recipient, {
                     opacity: 0,
+                    repeat: 5,
+                    yoyo: true,
+                    duration: 0.08,
+                    onComplete() {
+                      gsap.to(recipient, {
+                        opacity: 0,
+                      });
+                    },
                   });
-                },
-              });
 
-              return;
-            }
+                  // cancel the battle move to the normal map
 
-            if (recipient.health > 70) {
-              document.querySelector(healthBarSelector).style.background =
-                "rgb(98, 187, 38)";
-            } else if (recipient.health > 30) {
-              document.querySelector(healthBarSelector).style.background =
-                "rgb(406, 187, 38)";
-            } else {
-              document.querySelector(healthBarSelector).style.background =
-                "rgb(187, 38, 38)";
-            }
+                  return;
+                }
 
-            gsap.to(recipient.position, {
-              x: recipient.position.x + 35,
-              y: recipient.position.y - 25,
-              duration: 0.1,
+                if (recipient.health > 70) {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(98, 187, 38)";
+                } else if (recipient.health > 30) {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(406, 187, 38)";
+                } else {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(187, 38, 38)";
+                }
+              },
             });
-          },
-        })
-        .to(this.position, {
-          x: this.position.x,
-          y: this.position.y,
-        })
-        .to(recipient.position, {
-          x: recipient.position.x,
-          y: recipient.position.y,
-        });
+          });
+
+          break;
+        }
+      }
     }
 
     // integration of the sprite with canvas
     render() {
       context.save();
       context.globalAlpha = this.opacity;
+      context.translate(
+        this.position.x + this.width / 2,
+        this.position.y + this.height / 2
+      );
+      context.rotate(this.rotation);
+      context.translate(
+        -this.position.x - this.width / 2,
+        -this.position.y - this.height / 2
+      );
       // context.drawImage(this.image, this.position.x, this.position.y);
       context.drawImage(
         this.image,
@@ -757,13 +964,20 @@ const app = () => {
     duration: 0.4,
   });
 
+  const rendredSprites = [];
+
   var animateBattle = () => {
     window.requestAnimationFrame(animateBattle);
 
     battleBackground.render();
 
-    emby.render();
     draggle.render();
+
+    rendredSprites.forEach((sprite) => {
+      sprite.render();
+    });
+
+    emby.render();
 
     emby.frames.rate = 40;
     draggle.frames.rate = 40;
@@ -774,16 +988,55 @@ const app = () => {
 
   animateBattle();
 
+  const queue = [];
+
+  document.querySelector(".fight-bar").addEventListener("click", (event) => {
+    if (queue.length > 0) {
+      queue[0]();
+      queue.shift();
+      return;
+    }
+
+    document.querySelector(".fight-bar p").textContent = "what will you do?";
+  });
+
   document.querySelectorAll("button").forEach((button) => {
     if (button.getAttribute("data-attack")) {
       button.addEventListener("click", () => {
+        document.querySelector(`.window-fight`).style.display = "none";
+        document.querySelector(".fight-bar").style.display = "grid";
+        document.querySelector(
+          ".fight-bar p"
+        ).textContent = `Emby used ${button.getAttribute("data-attack")}!`;
+
         emby.attack({
-          attack: {
-            name: button.getAttribute("data-attack"),
-            damage: 10,
-            type: "normal",
-          },
+          attack: attacks[button.getAttribute("data-attack")],
           recipient: draggle,
+          rendredSprites,
+        });
+
+        document
+          .querySelector("#fight-button")
+          .setAttribute("disabled", "true");
+
+        queue.push(() => {
+          document.querySelector("#fight-button").removeAttribute("disabled");
+
+          if (draggle.health > 0) {
+            draggle.attack({
+              attack: attacks["tackle"],
+              recipient: emby,
+              rendredSprites,
+            });
+            document.querySelector(
+              ".fight-bar p"
+            ).textContent = `Draggle used ${attacks["tackle"].name}!`;
+            return;
+          }
+
+          document.querySelector(
+            ".fight-bar p"
+          ).textContent = `Draggle fainted`;
         });
       });
     }

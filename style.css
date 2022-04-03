@@ -71,6 +71,8 @@ section {
   width: 100%;
   height: 100%;
 
+  cursor: pointer;
+
   color: white;
   font-size: 24px;
   padding: 30px;
@@ -117,8 +119,8 @@ section {
   text-transform: uppercase;
 }
 
-.actions-bar button:hover::before,
-.actions-bar button:focus::before {
+.actions-bar button:not(:disabled):hover::before,
+.actions-bar button:not(:disabled):focus::before {
   content: ">";
 }
 

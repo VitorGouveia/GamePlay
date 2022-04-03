@@ -54,15 +54,16 @@
       </div>
 
       <div class="window window-fight">
-        <button data-attack="tackle">tackle</button>
-        <button data-attack="ember">ember</button>
+        <button data-attack="tackle">Tackle</button>
+        <button data-attack="firebolt">Firebolt</button>
+        <button data-attack="eruption">Eruption</button>
       </div>
 
       <div class="actions-bar">
-        <button onclick="setWindow('fight')">fight</button>
-        <button onclick="setWindow('bag')">bag</button>
-        <button onclick="setWindow('pok-mon')">pok-mon</button>
-        <button onclick="setWindow('run')">run</button>
+        <button id="fight-button" onclick="setWindow('fight')">fight</button>
+        <button disabled onclick="setWindow('bag')">bag</button>
+        <button disabled onclick="setWindow('pok-mon')">pok-mon</button>
+        <button disabled onclick="setWindow('run')">run</button>
       </div>
     </div>
   </section>
