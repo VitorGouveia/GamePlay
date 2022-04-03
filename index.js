@@ -165,6 +165,7 @@ const app = () => {
   class Sprite {
     width;
     height;
+    health = 100;
     position = {
       x: 0,
       y: 0,
@@ -178,6 +179,8 @@ const app = () => {
     };
     moving = false;
     sprites = {};
+    opacity = 1;
+    isEnemy = false;
 
     constructor({
       position: { y, x },
@@ -185,6 +188,8 @@ const app = () => {
       frames = { max: 1 },
       sprites = {},
       animate = false,
+      opacity = 1,
+      isEnemy = false,
     }) {
       this.position = {
         x,
@@ -199,6 +204,8 @@ const app = () => {
       };
       this.moving = animate;
       this.sprites = sprites;
+      this.opacity = opacity;
+      this.isEnemy = isEnemy;
     }
 
     setImage(url) {
@@ -210,8 +217,79 @@ const app = () => {
       };
     }
 
+    attack({ attack, recipient }) {
+      let movementDistance = 20;
+
+      if (this.isEnemy) movementDistance = -movementDistance;
+      const tl = gsap.timeline();
+
+      let healthBarSelector = "#enemy-health-bar";
+      if (this.isEnemy) healthBarSelector = "#player-health-bar";
+
+      tl.to(this.position, {
+        x: this.position.x - movementDistance * 2,
+        y: this.position.y + movementDistance,
+        duration: 0.3,
+      })
+        .to(this.position, {
+          x: this.position.x + movementDistance * 2,
+          y: this.position.y - movementDistance,
+          duration: 0.2,
+          onComplete: () => {
+            recipient.health -= attack.damage;
+
+            gsap.to(healthBarSelector, {
+              width: `${recipient.health}%`,
+            });
+
+            if (recipient.health <= 0) {
+              gsap.to(recipient, {
+                opacity: 0,
+                repeat: 5,
+                yoyo: true,
+                duration: 0.08,
+                onComplete() {
+                  gsap.to(recipient, {
+                    opacity: 0,
+                  });
+                },
+              });
+
+              return;
+            }
+
+            if (recipient.health > 70) {
+              document.querySelector(healthBarSelector).style.background =
+                "rgb(98, 187, 38)";
+            } else if (recipient.health > 30) {
+              document.querySelector(healthBarSelector).style.background =
+                "rgb(406, 187, 38)";
+            } else {
+              document.querySelector(healthBarSelector).style.background =
+                "rgb(187, 38, 38)";
+            }
+
+            gsap.to(recipient.position, {
+              x: recipient.position.x + 35,
+              y: recipient.position.y - 25,
+              duration: 0.1,
+            });
+          },
+        })
+        .to(this.position, {
+          x: this.position.x,
+          y: this.position.y,
+        })
+        .to(recipient.position, {
+          x: recipient.position.x,
+          y: recipient.position.y,
+        });
+    }
+
     // integration of the sprite with canvas
     render() {
+      context.save();
+      context.globalAlpha = this.opacity;
       // context.drawImage(this.image, this.position.x, this.position.y);
       context.drawImage(
         this.image,
@@ -224,6 +302,7 @@ const app = () => {
         this.image.width / this.frames.max,
         this.image.height
       );
+      context.restore();
 
       if (!this.moving) {
         return;
@@ -379,6 +458,23 @@ const app = () => {
                   gsap.to(".flashing-animation", {
                     background: "rgba(0, 0, 0, 0)",
                     duration: 0.2,
+                    onComplete() {
+                      // show UI
+                      gsap.to(".fight-bar-wrapper", {
+                        opacity: 1,
+                        duration: 0.2,
+                      });
+
+                      gsap.to(".top-info", {
+                        opacity: 1,
+                        duration: 0.2,
+                      });
+
+                      gsap.to(".bottom-info", {
+                        opacity: 1,
+                        duration: 0.2,
+                      });
+                    },
                   });
                 },
               });
@@ -643,6 +739,22 @@ const app = () => {
     frames: {
       max: 4,
     },
+    isEnemy: true,
+  });
+
+  gsap.to(".fight-bar-wrapper", {
+    opacity: 1,
+    duration: 0.4,
+  });
+
+  gsap.to(".top-info", {
+    opacity: 1,
+    duration: 0.4,
+  });
+
+  gsap.to(".bottom-info", {
+    opacity: 1,
+    duration: 0.4,
   });
 
   var animateBattle = () => {
@@ -661,6 +773,22 @@ const app = () => {
   };
 
   animateBattle();
+
+  document.querySelectorAll("button").forEach((button) => {
+    if (button.getAttribute("data-attack")) {
+      button.addEventListener("click", () => {
+        emby.attack({
+          attack: {
+            name: button.getAttribute("data-attack"),
+            damage: 10,
+            type: "normal",
+          },
+          recipient: draggle,
+        });
+      });
+    }
+  });
+
   window.addEventListener("keydown", ({ key, code }) => {
     if (key === "c") {
       crouching = true;
