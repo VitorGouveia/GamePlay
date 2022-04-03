@@ -27,7 +27,7 @@ export const monsters = {
     frames: {
       max: 4,
     },
-    health: 100,
+    health: 1,
     isEnemy: true,
     attacks: [attacks.tackle, attacks.pound],
   },

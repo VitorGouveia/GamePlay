@@ -133,7 +133,7 @@ const app = () => {
     }
 
     render() {
-      context.fillStyle = "red";
+      context.fillStyle = "rgba(0,0,0,0)";
       context.fillRect(
         this.position.x,
         this.position.y,
@@ -363,10 +363,10 @@ const app = () => {
                   return;
                 }
 
-                if (recipient.health > 70) {
+                if (recipientHealthToScale > 70) {
                   document.querySelector(healthBarSelector).style.background =
                     "rgb(98, 187, 38)";
-                } else if (recipient.health > 30) {
+                } else if (recipientHealthToScale > 30) {
                   document.querySelector(healthBarSelector).style.background =
                     "rgb(406, 187, 38)";
                 } else {
@@ -444,10 +444,10 @@ const app = () => {
                   return;
                 }
 
-                if (recipient.health > 70) {
+                if (recipientHealthToScale > 70) {
                   document.querySelector(healthBarSelector).style.background =
                     "rgb(98, 187, 38)";
-                } else if (recipient.health > 30) {
+                } else if (recipientHealthToScale > 30) {
                   document.querySelector(healthBarSelector).style.background =
                     "rgb(406, 187, 38)";
                 } else {
@@ -532,10 +532,10 @@ const app = () => {
                 return;
               }
 
-              if (recipient.health > 70) {
+              if (recipientHealthToScale > 70) {
                 document.querySelector(healthBarSelector).style.background =
                   "rgb(98, 187, 38)";
-              } else if (recipient.health > 30) {
+              } else if (recipientHealthToScale > 30) {
                 document.querySelector(healthBarSelector).style.background =
                   "rgb(406, 187, 38)";
               } else {
@@ -668,10 +668,10 @@ const app = () => {
                   return;
                 }
 
-                if (recipient.health > 70) {
+                if (recipientHealthToScale > 70) {
                   document.querySelector(healthBarSelector).style.background =
                     "rgb(98, 187, 38)";
-                } else if (recipient.health > 30) {
+                } else if (recipientHealthToScale > 30) {
                   document.querySelector(healthBarSelector).style.background =
                     "rgb(406, 187, 38)";
                 } else {
@@ -804,13 +804,15 @@ const app = () => {
           battleZone.position.y;
 
         const hit = hitLeftSide && hitRightSide && hitBottom && hitTop;
-        if (hit && !crouching && Math.random() < 0.05) {
+        if (hit && !crouching && Math.random() < 0.03) {
           console.log("spawn battle");
           window.cancelAnimationFrame(animationID);
 
           battle.initiated = true;
           moving = false;
           player.moving = false;
+
+          document.querySelector(".flashing-animation").style.zIndex = "50";
 
           gsap.to(".flashing-animation", {
             background: "rgba(0, 0, 0, 1)",
@@ -822,6 +824,7 @@ const app = () => {
                 background: "rgba(0, 0, 0, 1)",
                 duration: 0.2,
                 onComplete() {
+                  initBattle();
                   animateBattle();
 
                   gsap.to(".flashing-animation", {
@@ -829,20 +832,19 @@ const app = () => {
                     duration: 0.2,
                     onComplete() {
                       // show UI
+                      gsap.to(".info", {
+                        opacity: 1,
+                        visibility: "visible",
+                      });
+
                       gsap.to(".fight-bar-wrapper", {
                         opacity: 1,
-                        duration: 0.2,
+                        visibility: "visible",
                       });
 
-                      gsap.to(".top-info", {
-                        opacity: 1,
-                        duration: 0.2,
-                      });
-
-                      gsap.to(".bottom-info", {
-                        opacity: 1,
-                        duration: 0.2,
-                      });
+                      document.querySelector(
+                        ".flashing-animation"
+                      ).style.zIndex = "-1";
                     },
                   });
                 },
@@ -1078,7 +1080,7 @@ const app = () => {
     }
   };
 
-  // animate();
+  animate();
 
   const battleBackground = new Sprite({
     position: {
@@ -1088,37 +1090,194 @@ const app = () => {
     image: "./src/assets/images/battleBackground.png",
   });
 
-  const emby = new Monster(monsters.Emby);
+  let emby;
+  let draggle;
 
-  const draggle = new Monster(monsters.Draggle);
+  let rendredSprites;
 
-  gsap.to(".fight-bar-wrapper", {
-    opacity: 1,
-    duration: 0.4,
-  });
+  let battleAnimationID;
+  let queue;
 
-  gsap.to(".top-info", {
-    opacity: 1,
-    duration: 0.4,
-  });
+  const initBattle = () => {
+    document.querySelector("#enemy-health-bar").style.width = "100%";
+    document.querySelector("#player-health-bar").style.width = "100%";
+    document.querySelector(".window").style.display = "none";
+    document.querySelector(".window-fight").replaceChildren();
 
-  gsap.to(".bottom-info", {
-    opacity: 1,
-    duration: 0.4,
-  });
+    document.querySelector(".window-type p").textContent = "";
+    document.querySelector(".window-type h1").textContent = "";
 
-  const rendredSprites = [];
+    gsap.to(".info", {
+      opacity: 1,
+      visibility: "visible",
+    });
 
-  emby.attacks.forEach((attack) => {
-    const button = document.createElement("button");
-    button.textContent = attack.name;
-    button.setAttribute("data-attack", attack.name);
+    gsap.to(".fight-bar-wrapper", {
+      opacity: 1,
+      visibility: "visible",
+    });
 
-    document.querySelector(".window-fight").appendChild(button);
-  });
+    emby = new Monster(monsters.Emby);
+    draggle = new Monster(monsters.Draggle);
+
+    rendredSprites = [];
+    queue = [];
+
+    emby.attacks.forEach((attack) => {
+      const button = document.createElement("button");
+      button.textContent = attack.name;
+      button.setAttribute("data-attack", attack.name);
+
+      document.querySelector(".window-fight").appendChild(button);
+    });
+
+    document.querySelectorAll("button").forEach((button) => {
+      if (button.getAttribute("data-attack")) {
+        button.addEventListener("click", () => {
+          document.querySelector(`.window-fight`).style.display = "none";
+          document.querySelector(".fight-bar").style.display = "grid";
+          document.querySelector(
+            ".fight-bar p"
+          ).textContent = `Emby used ${button.getAttribute("data-attack")}!`;
+
+          emby.attack({
+            attack: attacks[button.getAttribute("data-attack")],
+            recipient: draggle,
+            rendredSprites,
+          });
+
+          document
+            .querySelector("#fight-button")
+            .setAttribute("disabled", "true");
+
+          const attack =
+            draggle.attacks[Math.floor(Math.random() * draggle.attacks.length)];
+
+          queue.push(() => {
+            document.querySelector("#fight-button").removeAttribute("disabled");
+
+            if (draggle.health > 0) {
+              draggle.attack({
+                attack: attack,
+                recipient: emby,
+                rendredSprites,
+              });
+
+              document.querySelector(
+                ".fight-bar p"
+              ).textContent = `Draggle used ${attack.name}!`;
+
+              if (emby.health <= 0) {
+                gsap.to(emby.position, {
+                  y: emby.position.y + 20,
+                });
+                gsap.to(emby, {
+                  opacity: 0,
+                });
+
+                document.querySelector(
+                  ".fight-bar p"
+                ).textContent = `Emby fainted`;
+
+                document.querySelector(".flashing-animation").style.zIndex =
+                  "50";
+
+                cancelAnimationFrame(battleAnimationID);
+
+                gsap.to(".flashing-animation", {
+                  background: "rgba(0,0,0,1)",
+                  onComplete: () => {
+                    animate();
+
+                    gsap.to(".info", {
+                      opacity: 0,
+                      visibility: "hidden",
+                    });
+                    gsap.to(".fight-bar-wrapper", {
+                      opacity: 0,
+                      visibility: "hidden",
+                    });
+
+                    gsap.to(".flashing-animation", {
+                      background: "rgba(0,0,0,0)",
+
+                      onComplete() {
+                        document.querySelector(
+                          ".flashing-animation"
+                        ).style.zIndex = "-1";
+                      },
+                    });
+                    battle.initiated = false;
+                  },
+                });
+                return;
+              }
+
+              return;
+            }
+
+            gsap.to(draggle.position, {
+              y: draggle.position.y + 20,
+            });
+            gsap.to(draggle, {
+              opacity: 0,
+            });
+
+            document.querySelector(
+              ".fight-bar p"
+            ).textContent = `Draggle fainted`;
+
+            document.querySelector(".flashing-animation").style.zIndex = "50";
+
+            cancelAnimationFrame(battleAnimationID);
+
+            gsap.to(".flashing-animation", {
+              background: "rgba(0,0,0,1)",
+              onComplete: () => {
+                animate();
+
+                gsap.to(".info", {
+                  opacity: 0,
+                  visibility: "hidden",
+                });
+                gsap.to(".fight-bar-wrapper", {
+                  opacity: 0,
+                  visibility: "hidden",
+                });
+
+                gsap.to(".flashing-animation", {
+                  background: "rgba(0,0,0,0)",
+
+                  onComplete() {
+                    document.querySelector(".flashing-animation").style.zIndex =
+                      "-1";
+                  },
+                });
+
+                battle.initiated = false;
+              },
+            });
+          });
+        });
+
+        button.addEventListener("mouseenter", () => {
+          const attackName = button.getAttribute("data-attack");
+
+          const selectedAttack = attacks[attackName];
+          document.querySelector(".window-type p").textContent =
+            selectedAttack.type;
+          document.querySelector(".window-type p").style.color =
+            selectedAttack.color;
+          document.querySelector(
+            ".window-type h1"
+          ).textContent = `Damage: ${selectedAttack.damage}`;
+        });
+      }
+    });
+  };
 
   var animateBattle = () => {
-    window.requestAnimationFrame(animateBattle);
+    battleAnimationID = window.requestAnimationFrame(animateBattle);
 
     battleBackground.render();
 
@@ -1137,9 +1296,8 @@ const app = () => {
     draggle.moving = true;
   };
 
-  animateBattle();
-
-  const queue = [];
+  // initBattle();
+  // animateBattle();
 
   document.querySelector(".fight-bar").addEventListener("click", (event) => {
     if (queue.length > 0) {
@@ -1149,73 +1307,6 @@ const app = () => {
     }
 
     document.querySelector(".fight-bar p").textContent = "what will you do?";
-  });
-
-  document.querySelectorAll("button").forEach((button) => {
-    if (button.getAttribute("data-attack")) {
-      button.addEventListener("click", () => {
-        document.querySelector(`.window-fight`).style.display = "none";
-        document.querySelector(".fight-bar").style.display = "grid";
-        document.querySelector(
-          ".fight-bar p"
-        ).textContent = `Emby used ${button.getAttribute("data-attack")}!`;
-
-        emby.attack({
-          attack: attacks[button.getAttribute("data-attack")],
-          recipient: draggle,
-          rendredSprites,
-        });
-
-        document
-          .querySelector("#fight-button")
-          .setAttribute("disabled", "true");
-
-        const attack =
-          draggle.attacks[Math.floor(Math.random() * draggle.attacks.length)];
-
-        queue.push(() => {
-          document.querySelector("#fight-button").removeAttribute("disabled");
-
-          if (draggle.health > 0) {
-            draggle.attack({
-              attack: attack,
-              recipient: emby,
-              rendredSprites,
-            });
-
-            document.querySelector(
-              ".fight-bar p"
-            ).textContent = `Draggle used ${attack.name}!`;
-
-            if (emby.health <= 0) {
-              document.querySelector(
-                ".fight-bar p"
-              ).textContent = `Emby fainted`;
-              return;
-            }
-
-            return;
-          }
-
-          document.querySelector(
-            ".fight-bar p"
-          ).textContent = `Draggle fainted`;
-        });
-      });
-
-      button.addEventListener("mouseenter", () => {
-        const attackName = button.getAttribute("data-attack");
-
-        const selectedAttack = attacks[attackName];
-        document.querySelector(".window-type p").textContent =
-          selectedAttack.type;
-        document.querySelector(".window-type p").style.color =
-          selectedAttack.color;
-        document.querySelector(
-          ".window-type h1"
-        ).textContent = `Damage: ${selectedAttack.damage}`;
-      });
-    }
   });
 
   window.addEventListener("keydown", ({ key, code }) => {
