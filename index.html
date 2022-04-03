@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pok-mon</title>
 
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="./style.css">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"
@@ -16,6 +21,39 @@
 <body>
   <div class="flashing-animation"></div>
 
+  <div class="info top-info">
+    <h1>draggle</h1>
+
+    <div class="health-container">
+      <div class="health-empty"></div>
+      <div class="health-full"></div>
+    </div>
+  </div>
+
+  <div class="info bottom-info">
+    <h1>draggle</h1>
+
+    <div class="health-container">
+      <div class="health-empty"></div>
+      <div class="health-full"></div>
+    </div>
+  </div>
+
   <canvas></canvas>
+
+  <section>
+    <div class="fight-bar-container">
+      <div class="fight-bar">
+        <p>what will you do?</p>
+      </div>
+
+      <div class="actions-bar">
+        <button>fight</button>
+        <button>bag</button>
+        <button>pok-mon</button>
+        <button>run</button>
+      </div>
+    </div>
+  </section>
 </body>
 </html>

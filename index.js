@@ -184,6 +184,7 @@ const app = () => {
       image,
       frames = { max: 1 },
       sprites = {},
+      animate = false,
     }) {
       this.position = {
         x,
@@ -196,7 +197,7 @@ const app = () => {
         this.width = this.image.width / this.frames.max;
         this.height = this.image.height;
       };
-      this.moving = false;
+      this.moving = animate;
       this.sprites = sprites;
     }
 
@@ -612,23 +613,54 @@ const app = () => {
     }
   };
 
-  animate();
+  // animate();
 
   const battleBackground = new Sprite({
     position: {
       x: 0,
-      y: 0,
+      y: -40,
     },
     image: "./src/assets/images/battleBackground.png",
+  });
+
+  const emby = new Sprite({
+    image: "./src/assets/images/embySprite.png",
+    position: {
+      x: 280,
+      y: 325 - 40,
+    },
+    frames: {
+      max: 4,
+    },
+  });
+
+  const draggle = new Sprite({
+    image: "./src/assets/images/draggleSprite.png",
+    position: {
+      x: 800,
+      y: 100 - 40,
+    },
+    frames: {
+      max: 4,
+    },
   });
 
   var animateBattle = () => {
     window.requestAnimationFrame(animateBattle);
 
     battleBackground.render();
+
+    emby.render();
+    draggle.render();
+
+    emby.frames.rate = 40;
+    draggle.frames.rate = 40;
+
+    emby.moving = true;
+    draggle.moving = true;
   };
 
-  // animateBattle();
+  animateBattle();
   window.addEventListener("keydown", ({ key, code }) => {
     if (key === "c") {
       crouching = true;
