@@ -1,3 +1,5 @@
+import { attacks } from "./attacks.js";
+
 export const monsters = {
   Emby: {
     image: "./src/assets/images/embySprite.png",
@@ -8,6 +10,13 @@ export const monsters = {
     frames: {
       max: 4,
     },
+    health: 100,
+    attacks: [
+      attacks.tackle,
+      attacks.firebolt,
+      attacks.eruption,
+      attacks.pound,
+    ],
   },
   Draggle: {
     image: "./src/assets/images/draggleSprite.png",
@@ -18,6 +27,8 @@ export const monsters = {
     frames: {
       max: 4,
     },
+    health: 100,
     isEnemy: true,
+    attacks: [attacks.tackle, attacks.pound],
   },
 };

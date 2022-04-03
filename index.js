@@ -177,8 +177,6 @@ const app = () => {
   class Sprite {
     width;
     height;
-    health = 100;
-    maxHealth = 100;
     position = {
       x: 0,
       y: 0,
@@ -193,7 +191,6 @@ const app = () => {
     moving = false;
     sprites = {};
     opacity = 1;
-    isEnemy = false;
     rotation = 0;
 
     constructor({
@@ -203,9 +200,7 @@ const app = () => {
       sprites = {},
       animate = false,
       opacity = 1,
-      isEnemy = false,
       rotation = 0,
-      health = 100,
     }) {
       this.position = {
         x,
@@ -221,10 +216,7 @@ const app = () => {
       this.moving = animate;
       this.sprites = sprites;
       this.opacity = opacity;
-      this.isEnemy = isEnemy;
       this.rotation = rotation;
-      this.health = health;
-      this.maxHealth = health;
     }
 
     setImage(url) {
@@ -234,6 +226,85 @@ const app = () => {
       img.onload = () => {
         this.image = img;
       };
+    }
+
+    // integration of the sprite with canvas
+    render() {
+      context.save();
+      context.globalAlpha = this.opacity;
+      context.translate(
+        this.position.x + this.width / 2,
+        this.position.y + this.height / 2
+      );
+      context.rotate(this.rotation);
+      context.translate(
+        -this.position.x - this.width / 2,
+        -this.position.y - this.height / 2
+      );
+      // context.drawImage(this.image, this.position.x, this.position.y);
+      context.drawImage(
+        this.image,
+        this.frames.current * this.width,
+        0,
+        this.image.width / this.frames.max,
+        this.image.height,
+        this.position.x,
+        this.position.y,
+        this.image.width / this.frames.max,
+        this.image.height
+      );
+      context.restore();
+
+      if (!this.moving) {
+        return;
+      }
+
+      if (this.frames.max > 1) {
+        this.frames.elapsed += 1;
+      }
+
+      if (this.frames.elapsed % this.frames.rate === 0) {
+        if (this.frames.current < this.frames.max - 1) this.frames.current += 1;
+        else this.frames.current = 0;
+      }
+    }
+  }
+
+  class Monster extends Sprite {
+    health = 100;
+    maxHealth = 100;
+    isEnemy = false;
+    attacks = [];
+
+    constructor({
+      position: { y, x },
+      image,
+      frames = { max: 1 },
+      sprites = {},
+      animate = false,
+      opacity = 1,
+      rotation = 0,
+      isEnemy = false,
+      health = 100,
+      attacks = [],
+    }) {
+      super({
+        image,
+        position: {
+          x,
+          y,
+        },
+        animate,
+        frames,
+        opacity,
+        rotation,
+        sprites,
+      });
+
+      this.isEnemy = isEnemy;
+      this.health = health;
+      this.maxHealth = health;
+      this.attacks = attacks;
     }
 
     attack({ attack, recipient, rendredSprites }) {
@@ -262,6 +333,87 @@ const app = () => {
               y: this.position.y - movementDistance,
               duration: 0.2,
               onComplete: () => {
+                const recipientHealthToScale = scale(
+                  recipient.health,
+                  [0, recipient.maxHealth],
+                  [0, 100]
+                );
+
+                gsap.to(healthBarSelector, {
+                  width: `${
+                    recipientHealthToScale < 0 ? 0 : recipientHealthToScale
+                  }%`,
+                });
+
+                if (recipient.health <= 0) {
+                  gsap.to(recipient, {
+                    opacity: 0,
+                    repeat: 5,
+                    yoyo: true,
+                    duration: 0.08,
+                    onComplete() {
+                      gsap.to(recipient, {
+                        opacity: 0,
+                      });
+                    },
+                  });
+
+                  // cancel the battle move to the normal map
+
+                  return;
+                }
+
+                if (recipient.health > 70) {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(98, 187, 38)";
+                } else if (recipient.health > 30) {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(406, 187, 38)";
+                } else {
+                  document.querySelector(healthBarSelector).style.background =
+                    "rgb(187, 38, 38)";
+                }
+
+                gsap.to(recipient.position, {
+                  x: recipient.position.x + movementDistance * 2,
+                  y: recipient.position.y - movementDistance,
+                  duration: 0.1,
+                });
+              },
+            })
+            .to(this.position, {
+              x: this.position.x,
+              y: this.position.y,
+            })
+            .to(recipient.position, {
+              x: recipient.position.x,
+              y: recipient.position.y,
+            });
+          break;
+        }
+        case "pound": {
+          let movementDistance = 50;
+
+          if (this.isEnemy) movementDistance = -movementDistance;
+          const tl = gsap.timeline();
+
+          tl.to(this.position, {
+            x: this.position.x - movementDistance * 2,
+            y: this.position.y + movementDistance,
+            duration: 0.3,
+          })
+            .to(this.position, {
+              x: this.position.x + movementDistance * 2,
+              y: this.position.y - movementDistance,
+              duration: 0.2,
+              onComplete: () => {
+                gsap.to(recipient, {
+                  opacity: 0,
+                  repeat: 5,
+                  yoyo: true,
+                  duration: 0.08,
+                });
+
                 const recipientHealthToScale = scale(
                   recipient.health,
                   [0, recipient.maxHealth],
@@ -532,47 +684,6 @@ const app = () => {
 
           break;
         }
-      }
-    }
-
-    // integration of the sprite with canvas
-    render() {
-      context.save();
-      context.globalAlpha = this.opacity;
-      context.translate(
-        this.position.x + this.width / 2,
-        this.position.y + this.height / 2
-      );
-      context.rotate(this.rotation);
-      context.translate(
-        -this.position.x - this.width / 2,
-        -this.position.y - this.height / 2
-      );
-      // context.drawImage(this.image, this.position.x, this.position.y);
-      context.drawImage(
-        this.image,
-        this.frames.current * this.width,
-        0,
-        this.image.width / this.frames.max,
-        this.image.height,
-        this.position.x,
-        this.position.y,
-        this.image.width / this.frames.max,
-        this.image.height
-      );
-      context.restore();
-
-      if (!this.moving) {
-        return;
-      }
-
-      if (this.frames.max > 1) {
-        this.frames.elapsed += 1;
-      }
-
-      if (this.frames.elapsed % this.frames.rate === 0) {
-        if (this.frames.current < this.frames.max - 1) this.frames.current += 1;
-        else this.frames.current = 0;
       }
     }
   }
@@ -977,9 +1088,9 @@ const app = () => {
     image: "./src/assets/images/battleBackground.png",
   });
 
-  const emby = new Sprite(monsters.Emby);
+  const emby = new Monster(monsters.Emby);
 
-  const draggle = new Sprite({ ...monsters.Draggle, health: 3000 });
+  const draggle = new Monster(monsters.Draggle);
 
   gsap.to(".fight-bar-wrapper", {
     opacity: 1,
@@ -997,6 +1108,14 @@ const app = () => {
   });
 
   const rendredSprites = [];
+
+  emby.attacks.forEach((attack) => {
+    const button = document.createElement("button");
+    button.textContent = attack.name;
+    button.setAttribute("data-attack", attack.name);
+
+    document.querySelector(".window-fight").appendChild(button);
+  });
 
   var animateBattle = () => {
     window.requestAnimationFrame(animateBattle);
@@ -1051,24 +1170,30 @@ const app = () => {
           .querySelector("#fight-button")
           .setAttribute("disabled", "true");
 
+        const attack =
+          draggle.attacks[Math.floor(Math.random() * draggle.attacks.length)];
+
         queue.push(() => {
           document.querySelector("#fight-button").removeAttribute("disabled");
 
-          if (emby.health <= 0) {
-            document.querySelector(".fight-bar p").textContent = `Emby fainted`;
-            return;
-          }
-
           if (draggle.health > 0) {
-            const attack = attacks["firebolt"];
             draggle.attack({
-              attack,
+              attack: attack,
               recipient: emby,
               rendredSprites,
             });
+
             document.querySelector(
               ".fight-bar p"
             ).textContent = `Draggle used ${attack.name}!`;
+
+            if (emby.health <= 0) {
+              document.querySelector(
+                ".fight-bar p"
+              ).textContent = `Emby fainted`;
+              return;
+            }
+
             return;
           }
 
@@ -1076,6 +1201,19 @@ const app = () => {
             ".fight-bar p"
           ).textContent = `Draggle fainted`;
         });
+      });
+
+      button.addEventListener("mouseenter", () => {
+        const attackName = button.getAttribute("data-attack");
+
+        const selectedAttack = attacks[attackName];
+        document.querySelector(".window-type p").textContent =
+          selectedAttack.type;
+        document.querySelector(".window-type p").style.color =
+          selectedAttack.color;
+        document.querySelector(
+          ".window-type h1"
+        ).textContent = `Damage: ${selectedAttack.damage}`;
       });
     }
   });

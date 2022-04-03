@@ -191,11 +191,17 @@ h1 {
 }
 
 .window-fight {
-  width: 50%;
+  width: 500px;
 
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
   padding: 0;
+}
+
+.window-type {
+  width: 250px;
+  display: grid;
+  place-content: center;
 }
 
 .window button {

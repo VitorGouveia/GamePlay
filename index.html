@@ -21,6 +21,10 @@
     function setWindow(window) {
       document.querySelector(".fight-bar").style.display = "none";
       document.querySelector(`.window-${window}`).style.display = "grid";
+      
+      if(window === "fight") {
+        document.querySelector(`.window-type`).style.display = "grid";
+      }
     }
   </script>
 </head>
@@ -54,9 +58,11 @@
       </div>
 
       <div class="window window-fight">
-        <button data-attack="tackle">Tackle</button>
-        <button data-attack="firebolt">Firebolt</button>
-        <button data-attack="eruption">Eruption</button>
+      </div>
+
+      <div class="window window-type">
+        <p></p>
+        <h1></h1>
       </div>
 
       <div class="actions-bar">
