@@ -97,19 +97,40 @@ const app = () => {
     image = new Image();
     frames = {
       max: 1,
+      current: 0,
+      elapsed: 0,
+      rate: 4,
     };
+    moving = false;
+    sprites = {};
 
-    constructor({ position: { y, x }, image, frames = { max: 1 } }) {
+    constructor({
+      position: { y, x },
+      image,
+      frames = { max: 1 },
+      sprites = {},
+    }) {
       this.position = {
         x,
         y,
       };
       this.image.src = image;
-      this.frames = frames;
+      this.frames = { ...frames, current: 0, elapsed: 0, rate: 4 };
 
       this.image.onload = () => {
         this.width = this.image.width / this.frames.max;
         this.height = this.image.height;
+      };
+      this.moving = false;
+      this.sprites = sprites;
+    }
+
+    setImage(url) {
+      const img = new Image();
+      img.src = url;
+
+      img.onload = () => {
+        this.image = img;
       };
     }
 
@@ -118,7 +139,7 @@ const app = () => {
       // context.drawImage(this.image, this.position.x, this.position.y);
       context.drawImage(
         this.image,
-        0,
+        this.frames.current * this.width,
         0,
         this.image.width / this.frames.max,
         this.image.height,
@@ -127,6 +148,19 @@ const app = () => {
         this.image.width / this.frames.max,
         this.image.height
       );
+
+      if (!this.moving) {
+        return;
+      }
+
+      if (this.frames.max > 1) {
+        this.frames.elapsed += 1;
+      }
+
+      if (this.frames.elapsed % this.frames.rate === 0) {
+        if (this.frames.current < this.frames.max - 1) this.frames.current += 1;
+        else this.frames.current = 0;
+      }
     }
   }
 
@@ -150,6 +184,12 @@ const app = () => {
     },
     frames: {
       max: 4,
+    },
+    sprites: {
+      up: "./src/assets/images/playerUp.png",
+      left: "./src/assets/images/playerLeft.png",
+      right: "./src/assets/images/playerRight.png",
+      down: "./src/assets/images/playerDown.png",
     },
     image: "./src/assets/images/playerDown.png",
   });
@@ -208,11 +248,23 @@ const app = () => {
     foreground.render();
 
     let step = 3;
-    if (crouching) step /= 2;
-    if (sprint) step *= 2;
+    player.frames.rate = 4;
+    if (crouching) {
+      step = step / 2;
+      player.frames.rate = 10;
+    }
+    if (sprint) {
+      step *= 2.4;
+      player.frames.rate = 2;
+    }
 
     let moving = true;
+    player.moving = false;
+
     if (keys.w.pressed && lastKey === "w") {
+      player.moving = true;
+      player.setImage(player.sprites.up);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -238,6 +290,9 @@ const app = () => {
     }
 
     if (keys.d.pressed && lastKey === "d") {
+      player.moving = true;
+      player.setImage(player.sprites.right);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -263,6 +318,9 @@ const app = () => {
     }
 
     if (keys.s.pressed && lastKey === "s") {
+      player.moving = true;
+      player.setImage(player.sprites.down);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -288,6 +346,9 @@ const app = () => {
     }
 
     if (keys.a.pressed && lastKey === "a") {
+      player.moving = true;
+      player.setImage(player.sprites.left);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -314,8 +375,10 @@ const app = () => {
     }
 
     //======================
-
     if (keys.w.pressed || keys.ArrowUp.pressed) {
+      player.moving = true;
+      player.setImage(player.sprites.up);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -340,6 +403,9 @@ const app = () => {
     }
 
     if (keys.d.pressed || keys.ArrowRight.pressed) {
+      player.moving = true;
+      player.setImage(player.sprites.right);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -364,6 +430,9 @@ const app = () => {
     }
 
     if (keys.s.pressed || keys.ArrowDown.pressed) {
+      player.moving = true;
+      player.setImage(player.sprites.down);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -388,6 +457,9 @@ const app = () => {
     }
 
     if (keys.a.pressed || keys.ArrowLeft.pressed) {
+      player.moving = true;
+      player.setImage(player.sprites.left);
+
       for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i];
 
@@ -415,7 +487,7 @@ const app = () => {
   animate();
 
   window.addEventListener("keydown", ({ key, code }) => {
-    if (code.includes("Shift")) {
+    if (key === "c") {
       crouching = true;
       return;
     }
@@ -435,7 +507,7 @@ const app = () => {
   });
 
   window.addEventListener("keyup", ({ key, code }) => {
-    if (code.includes("Shift")) {
+    if (key === "c") {
       crouching = false;
       return;
     }
