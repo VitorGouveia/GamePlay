@@ -3,6 +3,60 @@
 "use strict";
 
 import { collisions } from "./src/collisions.js";
+import { battleZones as battleZonesData } from "./src/battle-zones.js";
+
+const sunIntensity = {
+  0: 0.95,
+  1: 0.9,
+  2: 0.9,
+  3: 0.9,
+  4: 0.9,
+  5: 0.8,
+  6: 0.7,
+
+  7: 0.6,
+  8: 0.5,
+  9: 0.4,
+  10: 0.3,
+  11: 0.2,
+  12: 0.1,
+  13: 0.0,
+  14: 0.1,
+  15: 0.2,
+  16: 0.3,
+  17: 0.4,
+  18: 0.5,
+
+  19: 0.6,
+  20: 0.7,
+  21: 0.8,
+  22: 0.9,
+  23: 0.95,
+};
+
+// const hours = new Date().getHours();
+const hours = 12;
+document.querySelector(
+  "div"
+).style.background = `rgba(0, 0, 0, ${sunIntensity[hours]})`;
+
+/**
+ * 0.1
+ * 0.2
+ * 0.3
+ * 0.4
+ * 0.5
+ * 0.6
+ * 0.7
+ * 0.8
+ * 0.9
+ * 1.0
+ *
+ * 1
+ * 2
+ * ...
+ * 24
+ */
 
 const offset = {
   x: -735,
@@ -15,6 +69,12 @@ const collisionsMap = [];
 
 for (let i = 0; i < collisions.length; i += MAP_TILE_WIDTH) {
   collisionsMap.push(collisions.slice(i, 70 + i));
+}
+
+const battleZonesMap = [];
+
+for (let i = 0; i < battleZonesData.length; i += MAP_TILE_WIDTH) {
+  battleZonesMap.push(battleZonesData.slice(i, 70 + i));
 }
 
 const app = () => {
@@ -77,6 +137,21 @@ const app = () => {
     row.forEach((symbol, currentSymbolIndex) => {
       symbol === 1025 &&
         boundaries.push(
+          new Boundary({
+            position: {
+              x: currentSymbolIndex * Boundary.tileSize + offset.x,
+              y: currentRowIndex * Boundary.tileSize + offset.y,
+            },
+          })
+        );
+    });
+  });
+
+  const battleZones = [];
+  battleZonesMap.forEach((row, currentRowIndex) => {
+    row.forEach((symbol, currentSymbolIndex) => {
+      symbol === 1025 &&
+        battleZones.push(
           new Boundary({
             position: {
               x: currentSymbolIndex * Boundary.tileSize + offset.x,
@@ -209,17 +284,8 @@ const app = () => {
     s: { pressed: false },
   };
 
-  const testBoundary = new Boundary({
-    position: {
-      x: 400,
-      y: 400,
-    },
-  });
-
-  boundaries.push(testBoundary);
-
-  const movables = [background, ...boundaries, foreground];
-  const rectangularColission = ({ rectangle1, rectangle2 }) => {
+  const movables = [background, ...boundaries, foreground, ...battleZones];
+  const rectangularCollision = ({ rectangle1, rectangle2 }) => {
     const hitLeftSide =
       rectangle1.position.x + rectangle1.width >= rectangle2.position.x;
     const hitRightSide =
@@ -227,30 +293,35 @@ const app = () => {
 
     // i add extra 15% to only start the hitbox by the foot and not the head
     const hitBottom =
-      rectangle1.position.y + rectangle1.position.y * 0.15 <=
+      rectangle1.position.y + rectangle1.position.y * 0.1 <=
       rectangle2.position.y + rectangle2.height;
     const hitTop =
       rectangle1.position.y + rectangle1.height >= rectangle2.position.y;
 
     return hitLeftSide && hitRightSide && hitBottom && hitTop;
   };
+
+  let battle = {
+    initiated: false,
+  };
+
   const animate = () => {
     // find way to handle FPS here
-    window.requestAnimationFrame(animate);
+    const animationID = window.requestAnimationFrame(animate);
 
     background.render();
 
-    testBoundary.render();
-    player.render();
-
+    battleZones.forEach((boundary) => boundary.render());
     boundaries.forEach((boundary) => boundary.render());
+
+    player.render();
 
     foreground.render();
 
     let step = 3;
     player.frames.rate = 4;
     if (crouching) {
-      step = step / 2;
+      step /= 1.2;
       player.frames.rate = 10;
     }
     if (sprint) {
@@ -261,6 +332,63 @@ const app = () => {
     let moving = true;
     player.moving = false;
 
+    if (battle.initiated) return;
+
+    // battle activation
+    if (keys.w.pressed || keys.a.pressed || keys.d.pressed || keys.s.pressed) {
+      for (let i = 0; i < battleZones.length; i++) {
+        const battleZone = battleZones[i];
+
+        const hitRightSide =
+          player.position.x + player.width - player.width * 0.5 >=
+          battleZone.position.x;
+        const hitLeftSide =
+          player.position.x + player.width * 0.5 <=
+          battleZone.position.x + battleZone.width;
+
+        // i add extra 15% to only start the hitbox by the foot and not the head
+        const hitBottom =
+          player.position.y + player.position.y * 0.24 <=
+          battleZone.position.y + battleZone.height;
+        const hitTop =
+          player.position.y + player.height - player.height * 0.3 >=
+          battleZone.position.y;
+
+        const hit = hitLeftSide && hitRightSide && hitBottom && hitTop;
+        if (hit && !crouching && Math.random() < 0.05) {
+          console.log("spawn battle");
+          window.cancelAnimationFrame(animationID);
+
+          battle.initiated = true;
+          moving = false;
+          player.moving = false;
+
+          gsap.to(".flashing-animation", {
+            background: "rgba(0, 0, 0, 1)",
+            repeat: 3,
+            yoyo: true,
+            duration: 0.2,
+            onComplete() {
+              gsap.to(".flashing-animation", {
+                background: "rgba(0, 0, 0, 1)",
+                duration: 0.2,
+                onComplete() {
+                  animateBattle();
+
+                  gsap.to(".flashing-animation", {
+                    background: "rgba(0, 0, 0, 0)",
+                    duration: 0.2,
+                  });
+                },
+              });
+            },
+          });
+
+          break;
+        }
+      }
+    }
+
     if (keys.w.pressed && lastKey === "w") {
       player.moving = true;
       player.setImage(player.sprites.up);
@@ -269,7 +397,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -297,7 +425,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -325,7 +453,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -353,7 +481,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -383,7 +511,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -410,7 +538,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -437,7 +565,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -464,7 +592,7 @@ const app = () => {
         const boundary = boundaries[i];
 
         if (
-          rectangularColission({
+          rectangularCollision({
             rectangle1: player,
             rectangle2: {
               ...boundary,
@@ -486,6 +614,21 @@ const app = () => {
 
   animate();
 
+  const battleBackground = new Sprite({
+    position: {
+      x: 0,
+      y: 0,
+    },
+    image: "./src/assets/images/battleBackground.png",
+  });
+
+  var animateBattle = () => {
+    window.requestAnimationFrame(animateBattle);
+
+    battleBackground.render();
+  };
+
+  // animateBattle();
   window.addEventListener("keydown", ({ key, code }) => {
     if (key === "c") {
       crouching = true;
