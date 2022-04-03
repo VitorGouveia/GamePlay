@@ -6,6 +6,9 @@ import { collisions } from "./src/collisions.js";
 import { battleZones as battleZonesData } from "./src/battle-zones.js";
 import { attacks } from "./src/attacks.js";
 import { monsters } from "./src/monsters.js";
+import { audio } from "./src/audio.js";
+
+let clicked = false;
 
 const scale = (inputY, yRange, xRange) => {
   const [xMin, xMax] = xRange;
@@ -105,6 +108,8 @@ const app = () => {
    * webgl2
    */
   const context = canvas.getContext("2d");
+
+  audio.map.play();
 
   canvas.width = 1024;
   canvas.height = 576;
@@ -339,6 +344,8 @@ const app = () => {
                   [0, 100]
                 );
 
+                audio.tackle.play();
+
                 gsap.to(healthBarSelector, {
                   width: `${
                     recipientHealthToScale < 0 ? 0 : recipientHealthToScale
@@ -420,6 +427,8 @@ const app = () => {
                   [0, 100]
                 );
 
+                audio.tackle.play();
+
                 gsap.to(healthBarSelector, {
                   width: `${
                     recipientHealthToScale < 0 ? 0 : recipientHealthToScale
@@ -473,6 +482,8 @@ const app = () => {
           break;
         }
         case "firebolt": {
+          audio.initFireball.play();
+
           const fireball = new Sprite({
             position: {
               x: this.position.x,
@@ -494,6 +505,7 @@ const app = () => {
             x: recipient.position.x,
             y: recipient.position.y,
             onComplete: () => {
+              audio.fireball.play();
               rendredSprites.pop();
 
               const recipientHealthToScale = scale(
@@ -601,6 +613,7 @@ const app = () => {
 
             if (this.isEnemy) directionDistance = -directionDistance;
 
+            audio.initFireball.play();
             const fireball = new Sprite({
               position: {
                 x:
@@ -630,6 +643,7 @@ const app = () => {
               y: fireball.position.y - (this.isEnemy ? -(220 * 2) : 220 * 2),
               duration: 1,
               onComplete: () => {
+                audio.fireball.play();
                 rendredSprites.pop();
 
                 const recipientHealthToScale = scale(
@@ -808,6 +822,9 @@ const app = () => {
           console.log("spawn battle");
           window.cancelAnimationFrame(animationID);
 
+          audio.map.stop();
+          audio.initBattle.play();
+          audio.battle.play();
           battle.initiated = true;
           moving = false;
           player.moving = false;
@@ -1175,6 +1192,9 @@ const app = () => {
                   opacity: 0,
                 });
 
+                audio.battle.stop();
+                audio.victory.play();
+
                 document.querySelector(
                   ".fight-bar p"
                 ).textContent = `Emby fainted`;
@@ -1208,6 +1228,7 @@ const app = () => {
                       },
                     });
                     battle.initiated = false;
+                    audio.map.play();
                   },
                 });
                 return;
@@ -1222,6 +1243,9 @@ const app = () => {
             gsap.to(draggle, {
               opacity: 0,
             });
+
+            audio.battle.stop();
+            audio.victory.play();
 
             document.querySelector(
               ".fight-bar p"
@@ -1255,6 +1279,7 @@ const app = () => {
                 });
 
                 battle.initiated = false;
+                audio.map.play();
               },
             });
           });
@@ -1350,3 +1375,10 @@ const app = () => {
 };
 
 document.addEventListener("DOMContentLoaded", app);
+
+addEventListener("click", () => {
+  if (!clicked) {
+    audio.map.play();
+    clicked = true;
+  }
+});
