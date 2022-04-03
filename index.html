@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pok-mon</title>
+
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./style.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"
+    integrity="sha512-H6cPm97FAsgIKmlBA4s774vqoN24V5gSQL4yBTDOY2su2DeXZVhQPxFK4P6GPdnZqM9fg1G3cMv5wD7e6cFLZQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"
+      integrity="sha512-6+YN/9o9BWrk6wSfGxQGpt3EUK6XeHi6yeHV+TYD2GR0Sj/cggRpXr1BrAQf0as6XslxomMUxXp2vIl+fv0QRA=="
+      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script type="module" src="./index.js"></script>
+  <script defer>
+    function setWindow(window) {
+      document.querySelector(".fight-bar").style.display = "none";
+      document.querySelector(`.window-${window}`).style.display = "grid";
+      
+      if(window === "fight") {
+        document.querySelector(`.window-type`).style.display = "grid";
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="flashing-animation"></div>
+
+  <div class="info top-info">
+    <h1>Draggle</h1>
+
+    <div class="health-container">
+      <div class="health-empty"></div>
+      <div id="enemy-health-bar" class="health-full"></div>
+    </div>
+  </div>
+
+  <div class="info bottom-info">
+    <h1>Emby</h1>
+
+    <div class="health-container">
+      <div class="health-empty"></div>
+      <div id="player-health-bar" class="health-full"></div>
+    </div>
+  </div>
+
+  <canvas></canvas>
+
+  <section class="fight-bar-wrapper">
+    <div class="fight-bar-container">
+      <div class="fight-bar">
+        <p>what will you do?</p>
+      </div>
+
+      <div class="window window-fight">
+      </div>
+
+      <div class="window window-type">
+        <p></p>
+        <h1></h1>
+      </div>
+
+      <div class="actions-bar">
+        <button id="fight-button" onclick="setWindow('fight')">fight</button>
+        <button disabled onclick="setWindow('bag')">bag</button>
+        <button disabled onclick="setWindow('pok-mon')">pok-mon</button>
+        <button disabled onclick="setWindow('run')">run</button>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
