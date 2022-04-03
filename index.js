@@ -61,7 +61,7 @@ const app = () => {
     }
 
     render() {
-      context.fillStyle = "rgba(0, 0, 0, 0)";
+      context.fillStyle = "red";
       context.fillRect(
         this.position.x,
         this.position.y,
@@ -135,6 +135,11 @@ const app = () => {
     image: "./src/assets/tiled/Pellet-Town.png",
   });
 
+  const foreground = new Sprite({
+    position: offset,
+    image: "./src/assets/tiled/PelletTownForegroundObjects.png",
+  });
+
   const playerSpriteWidth = 192;
   const playerSpriteHeght = 68;
 
@@ -173,7 +178,7 @@ const app = () => {
 
   boundaries.push(testBoundary);
 
-  const movables = [background, ...boundaries];
+  const movables = [background, ...boundaries, foreground];
   const rectangularColission = ({ rectangle1, rectangle2 }) => {
     const hitLeftSide =
       rectangle1.position.x + rectangle1.width >= rectangle2.position.x;
@@ -199,6 +204,8 @@ const app = () => {
     player.render();
 
     boundaries.forEach((boundary) => boundary.render());
+
+    foreground.render();
 
     let step = 3;
     if (crouching) step /= 2;
