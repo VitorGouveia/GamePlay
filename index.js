@@ -5,6 +5,17 @@
 import { collisions } from "./src/collisions.js";
 import { battleZones as battleZonesData } from "./src/battle-zones.js";
 import { attacks } from "./src/attacks.js";
+import { monsters } from "./src/monsters.js";
+
+const scale = (inputY, yRange, xRange) => {
+  const [xMin, xMax] = xRange;
+  const [yMin, yMax] = yRange;
+
+  const percent = (inputY - yMin) / (yMax - yMin);
+  const outputX = percent * (xMax - xMin) + xMin;
+
+  return outputX;
+};
 
 const sunIntensity = {
   0: 0.95,
@@ -167,6 +178,7 @@ const app = () => {
     width;
     height;
     health = 100;
+    maxHealth = 100;
     position = {
       x: 0,
       y: 0,
@@ -193,6 +205,7 @@ const app = () => {
       opacity = 1,
       isEnemy = false,
       rotation = 0,
+      health = 100,
     }) {
       this.position = {
         x,
@@ -210,6 +223,8 @@ const app = () => {
       this.opacity = opacity;
       this.isEnemy = isEnemy;
       this.rotation = rotation;
+      this.health = health;
+      this.maxHealth = health;
     }
 
     setImage(url) {
@@ -247,8 +262,16 @@ const app = () => {
               y: this.position.y - movementDistance,
               duration: 0.2,
               onComplete: () => {
+                const recipientHealthToScale = scale(
+                  recipient.health,
+                  [0, recipient.maxHealth],
+                  [0, 100]
+                );
+
                 gsap.to(healthBarSelector, {
-                  width: `${recipient.health < 0 ? 0 : recipient.health}%`,
+                  width: `${
+                    recipientHealthToScale < 0 ? 0 : recipientHealthToScale
+                  }%`,
                 });
 
                 if (recipient.health <= 0) {
@@ -281,8 +304,8 @@ const app = () => {
                 }
 
                 gsap.to(recipient.position, {
-                  x: recipient.position.x + 35,
-                  y: recipient.position.y - 25,
+                  x: recipient.position.x + movementDistance * 2,
+                  y: recipient.position.y - movementDistance,
                   duration: 0.1,
                 });
               },
@@ -321,8 +344,16 @@ const app = () => {
             onComplete: () => {
               rendredSprites.pop();
 
+              const recipientHealthToScale = scale(
+                recipient.health,
+                [0, recipient.maxHealth],
+                [0, 100]
+              );
+
               gsap.to(healthBarSelector, {
-                width: `${recipient.health < 0 ? 0 : recipient.health}%`,
+                width: `${
+                  recipientHealthToScale < 0 ? 0 : recipientHealthToScale
+                }%`,
               });
 
               gsap.to(recipient, {
@@ -414,10 +445,22 @@ const app = () => {
           // -5 +5
           // 0 -5
           Array.from({ length: 10 }).forEach((_, index) => {
+            let directionDistance = 300;
+
+            if (this.isEnemy) directionDistance = -directionDistance;
+
             const fireball = new Sprite({
               position: {
-                x: this.position.x + fireballMap[index].x,
-                y: this.position.y - fireballMap[index].y,
+                x:
+                  this.position.x +
+                  (this.isEnemy
+                    ? -fireballMap[index].x
+                    : -fireballMap[index].x),
+                y:
+                  this.position.y -
+                  (this.isEnemy
+                    ? -fireballMap[index].y
+                    : +fireballMap[index].y),
               },
               image: "./src/assets/images/fireball.png",
               frames: {
@@ -431,14 +474,22 @@ const app = () => {
             rendredSprites.push(fireball);
 
             gsap.to(fireball.position, {
-              x: fireball.position.x + 600 * 2,
-              y: fireball.position.y - 220 * 2,
+              x: fireball.position.x + (this.isEnemy ? -(600 * 2) : 600 * 2),
+              y: fireball.position.y - (this.isEnemy ? -(220 * 2) : 220 * 2),
               duration: 1,
               onComplete: () => {
                 rendredSprites.pop();
 
+                const recipientHealthToScale = scale(
+                  recipient.health,
+                  [0, recipient.maxHealth],
+                  [0, 100]
+                );
+
                 gsap.to(healthBarSelector, {
-                  width: `${recipient.health < 0 ? 0 : recipient.health}%`,
+                  width: `${
+                    recipientHealthToScale < 0 ? 0 : recipientHealthToScale
+                  }%`,
                 });
 
                 gsap.to(recipient, {
@@ -926,28 +977,9 @@ const app = () => {
     image: "./src/assets/images/battleBackground.png",
   });
 
-  const emby = new Sprite({
-    image: "./src/assets/images/embySprite.png",
-    position: {
-      x: 280,
-      y: 325 - 40,
-    },
-    frames: {
-      max: 4,
-    },
-  });
+  const emby = new Sprite(monsters.Emby);
 
-  const draggle = new Sprite({
-    image: "./src/assets/images/draggleSprite.png",
-    position: {
-      x: 800,
-      y: 100 - 40,
-    },
-    frames: {
-      max: 4,
-    },
-    isEnemy: true,
-  });
+  const draggle = new Sprite({ ...monsters.Draggle, health: 3000 });
 
   gsap.to(".fight-bar-wrapper", {
     opacity: 1,
@@ -1022,15 +1054,21 @@ const app = () => {
         queue.push(() => {
           document.querySelector("#fight-button").removeAttribute("disabled");
 
+          if (emby.health <= 0) {
+            document.querySelector(".fight-bar p").textContent = `Emby fainted`;
+            return;
+          }
+
           if (draggle.health > 0) {
+            const attack = attacks["firebolt"];
             draggle.attack({
-              attack: attacks["tackle"],
+              attack,
               recipient: emby,
               rendredSprites,
             });
             document.querySelector(
               ".fight-bar p"
-            ).textContent = `Draggle used ${attacks["tackle"].name}!`;
+            ).textContent = `Draggle used ${attack.name}!`;
             return;
           }
 
